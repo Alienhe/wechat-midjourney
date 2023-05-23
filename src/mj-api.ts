@@ -38,7 +38,7 @@ export async function downloadImage(url: string): Promise<FileBox> {
         url: url,
         responseType: 'arraybuffer',
         httpsAgent: config.httpProxy != "" ? new HttpsProxyAgent(config.httpProxy) : undefined,
-        timeout: 10000,
+        timeout: 120000,
     });
 
     const filename = url.split('/')!.pop()!;

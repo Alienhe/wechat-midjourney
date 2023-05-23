@@ -24,7 +24,7 @@ export class Bot {
             const result = "欢迎使用MJ机器人\n" +
                 "------------------------------\n"
                 + "🎨 生成图片命令\n"
-                + "输入: /imagine prompt\n"
+                + "输入: /mj prompt\n"
                 + "prompt 即你向mj提的绘画需求\n"
                 + "------------------------------\n"
                 + "🌈 变换图片命令\n"
@@ -34,7 +34,7 @@ export class Bot {
                 + "------------------------------\n"
                 + "📕 附加参数 \n"
                 + "1.解释：附加参数指的是在prompt后携带的参数，可以使你的绘画更加别具一格\n"
-                + "· 输入 /imagine prompt --v 5 --ar 16:9\n"
+                + "· 输入 /mj prompt --v 5 --ar 16:9\n"
                 + "2.使用：需要使用--key value ，key和value之间需要空格隔开，每个附加参数之间也需要空格隔开\n"
                 + "------------------------------\n"
                 + "📗 附加参数列表\n"
@@ -53,7 +53,7 @@ export class Bot {
         }
         const talkerName = talker.name();
         console.log(`${formatDateStandard(date)} - [${topic}] ${talkerName}: ${rawText}`);
-        if (!rawText.startsWith('/imagine ') && !rawText.startsWith('/up ')) {
+        if (!rawText.startsWith('/mj ') && !rawText.startsWith('/up ')) {
             return;
         }
         if (isProhibited(rawText)) {
@@ -70,8 +70,8 @@ export class Bot {
                 action: "UV",
                 content: content
             });
-        } else if (rawText.startsWith('/imagine ')) {
-            const prompt = rawText.substring(9);
+        } else if (rawText.startsWith('/mj ')) {
+            const prompt = rawText.substring(4);
             errorMsg = await submitTask({
                 state: topic + ':' + talkerName,
                 action: "IMAGINE",
