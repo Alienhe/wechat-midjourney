@@ -31,17 +31,24 @@ async function main() {
     console.log(`user ${user.name()} login success`);
     bot.setBotName(user.name());
   }).on("message", async (message) => {
+    // console.log(message.talker())
     if (message.date().getTime() < initializedAt) {
       return;
     }
     if (!message.room()) {
       // 暂不处理私聊信息
+      try {
+        bot.onMessage(message);
+      } catch (e) {
+        console.error(`bot on message error: ${e}`);
+      }
       return;
-    }
-    try {
-      bot.onMessage(message);
-    } catch (e) {
-      console.error(`bot on message error: ${e}`);
+    } else {
+      try {
+        bot.onRoomMessage(message);
+      } catch (e) {
+        console.error(`bot on message error: ${e}`);
+      }
     }
   });
   try {
@@ -58,38 +65,47 @@ app.post("/notify", async (req: Request, res: Response): Promise<Response> => {
     const i = state.indexOf(":");
     const roomName = state.substring(0, i);
     const userName = state.substring(i + 1);
-    const room = await client.Room.find({ topic: roomName });
+    let room;
+    console.log(state)
+    if (roomName == '私聊') {
+      room = await client.Contact.find({ name: userName });
+    } else {
+      room = await client.Room.find({ topic: roomName });
+    }
+    console.log(room)
+    // 找不到人或房间
     if (!room) {
       return res.status(404).send("room not found");
     }
+    
     const action = req.body.action;
     const status = req.body.status;
-    const description = req.body.description;
+    const description = req.body.prompt;
     if (status == 'IN_PROGRESS') {
-      room.say(`@${userName} \n✅ 您的任务已提交\n✨ ${description}\n🚀 正在快速处理中，请稍后`);
+      room.say(`@${userName} \n✅ 您的任务已提交\n✨ Prompt: ${description}\n🚀 正在快速处理中，请稍后`);
     } else if (status == 'FAILURE') {
       room.say(`@${userName} \n❌ 任务执行失败\n✨ ${description}`);
     } else if (status == 'SUCCESS') {
       const time = req.body.finishTime - req.body.submitTime;
       if (action == 'UPSCALE') {
-        await room.say(`@${userName} \n🎨 图片放大，用时: ${displayMilliseconds(time)}\n✨ ${description}`);
-
+        
         const image =  await downloadImage(req.body.imageUrl);
+        await room.say(`@${userName} \n🎨 图片放大，用时: ${displayMilliseconds(time)}\n✨ ${description}`);
         room.say(image);
 
       } else {
         const taskId = req.body.id;
         const prompt = req.body.prompt;
-        await room.say(`@${userName} \n🎨 ${action == 'IMAGINE' ? '绘图' : '变换'}成功，用时 ${displayMilliseconds(time)}\n✨ Prompt: ${prompt}\n📨 任务ID: ${taskId}\n🪄 放大 U1～U4 ，变换 V1～V4\n✏️ 使用[/up 任务ID 操作]\n/up ${taskId} U1`);
 
         const image = await downloadImage(req.body.imageUrl);
+        await room.say(`@${userName} \n🎨 ${action == 'IMAGINE' ? '绘图' : '变换'}成功，用时 ${displayMilliseconds(time)}\n✨ Prompt: ${prompt}\n📨 任务ID: ${taskId}\n🪄 放大 U1～U4 ，变换 V1～V4\n✏️ 使用[/up 任务ID 操作]\n/up ${taskId} U1`);
         room.say(image);
       }
     }
     return res.status(200).send({ code: 1 });
   } catch (e) {
     console.error(`notify callback failed: ${e}`);
-    return res.status(500).send({ code: -9 });
+    return res.status(500).send({ code: -9, msg: e });
   }
 });
 

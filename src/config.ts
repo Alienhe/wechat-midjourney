@@ -9,7 +9,7 @@ export interface IConfig {
 }
 
 export const config: IConfig = {
-  mjProxyEndpoint: process.env.MJ_PROXY_ENDPOINT || "http://localhost:8022/mj",
+  mjProxyEndpoint: process.env.MJ_PROXY_ENDPOINT || "http://localhost:8080/mj",
   blockWords: process.env.BLOCK_WORDS?.split(",") || [],
   httpProxy: process.env.HTTP_PROXY || "",
   imagesPath: process.env.IMAGE_PATH || "",
