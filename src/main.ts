@@ -92,7 +92,7 @@ app.post("/notify", async (req: Request, res: Response): Promise<Response> => {
     const action = req.body.action;
     const status = req.body.status;
     const description = req.body.prompt;
-    if (status == 'IN_PROGRESS') {
+    if (status == 'IN_PROGRESS' || status == 'SUBMITTED') {
       room.say(`@${userName} \n✅ 您的任务已提交\n✨ Prompt: ${description}\n🚀 正在快速处理中，请稍后`);
     } else if (status == 'FAILURE') {
       room.say(`@${userName} \n❌ 任务执行失败\n✨ ${description}`);
