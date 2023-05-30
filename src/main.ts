@@ -3,6 +3,8 @@ import QRCode from "qrcode";
 import { Bot } from "./bot.js";
 import { displayMilliseconds } from "./utils.js";
 import { downloadImage } from "./mj-api.js";
+import { config } from "./config.js";
+import Redis from "ioredis";
 
 import express, { Application, Request, Response } from "express";
 
@@ -21,6 +23,13 @@ const client = WechatyBuilder.build({
   }
 });
 
+const redis = new Redis({
+  host: config.redisHost,
+  port: Number(config.redisPort),
+  password: config.redisPwd,
+})
+
+
 async function main() {
   const initializedAt = Date.now();
   client.on("scan", async (qrcode) => {
@@ -35,6 +44,8 @@ async function main() {
     if (message.date().getTime() < initializedAt) {
       return;
     }
+    if (message.self()) return;
+
     if (!message.room()) {
       // 暂不处理私聊信息
       try {
@@ -62,11 +73,11 @@ main();
 app.post("/notify", async (req: Request, res: Response): Promise<Response> => {
   try {
     const state = req.body.state;
-    const i = state.indexOf(":");
-    const roomName = state.substring(0, i);
-    const userName = state.substring(i + 1);
+    const [roomName, talkerId, userName] = state.split(':');
+    // const i = state.indexOf(":");
+    // const roomName = state.substring(0, i);
+    // const userName = state.substring(i + 1);
     let room;
-    console.log(state)
     if (roomName == '私聊') {
       room = await client.Contact.find({ name: userName });
     } else {
@@ -85,6 +96,7 @@ app.post("/notify", async (req: Request, res: Response): Promise<Response> => {
       room.say(`@${userName} \n✅ 您的任务已提交\n✨ Prompt: ${description}\n🚀 正在快速处理中，请稍后`);
     } else if (status == 'FAILURE') {
       room.say(`@${userName} \n❌ 任务执行失败\n✨ ${description}`);
+      await redis.set(`mj_talker_msg_count_${talkerId}`, 0);
     } else if (status == 'SUCCESS') {
       const time = req.body.finishTime - req.body.submitTime;
       if (action == 'UPSCALE') {
@@ -101,6 +113,7 @@ app.post("/notify", async (req: Request, res: Response): Promise<Response> => {
         await room.say(`@${userName} \n🎨 ${action == 'IMAGINE' ? '绘图' : '变换'}成功，用时 ${displayMilliseconds(time)}\n✨ Prompt: ${prompt}\n📨 任务ID: ${taskId}\n🪄 放大 U1～U4 ，变换 V1～V4\n✏️ 使用[/up 任务ID 操作]\n/up ${taskId} U1`);
         room.say(image);
       }
+      await redis.set(`mj_talker_msg_count_${talkerId}`, 0);
     }
     return res.status(200).send({ code: 1 });
   } catch (e) {

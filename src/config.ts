@@ -6,6 +6,9 @@ export interface IConfig {
   blockWords: string[];
   httpProxy: string;
   imagesPath: String;
+  redisHost: string;
+  redisPort: string;
+  redisPwd: string;
 }
 
 export const config: IConfig = {
@@ -13,4 +16,7 @@ export const config: IConfig = {
   blockWords: process.env.BLOCK_WORDS?.split(",") || [],
   httpProxy: process.env.HTTP_PROXY || "",
   imagesPath: process.env.IMAGE_PATH || "",
+  redisHost: process.env.REDIS_HOST || "",
+  redisPort: process.env.REDIS_PORT || "",
+  redisPwd: process.env.REDIS_PASSWORD || "",
 };

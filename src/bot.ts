@@ -1,6 +1,14 @@
 import { Message } from "wechaty";
 import { isNonsense, isProhibited, formatDateStandard } from "./utils.js";
 import { submitTask } from "./mj-api.js";
+import { config } from "./config.js";
+import Redis from "ioredis";
+
+const redis = new Redis({
+  host: config.redisHost,
+  port: Number(config.redisPort),
+  password: config.redisPwd,
+})
 
 export class Bot {
   botName: string = "MJBOT";
@@ -51,6 +59,7 @@ export class Bot {
         await room.say(result);
         return;
     }
+
     const talkerName = talker.name();
     console.log(`${formatDateStandard(date)} - [${topic}] ${talkerName}: ${rawText}`);
     if (!rawText.startsWith('/mj ') && !rawText.startsWith('/up ')) {
@@ -62,18 +71,31 @@ export class Bot {
       console.log(`${formatDateStandard(date)} - [${topic}] ${this.botName}: ${content}`);
       return;
     }
+
+    // redis获取锁定状态
+    const talkerId = talker.id;
+    console.log('talkerId--------',talkerId)
+    const talkerMsgCount = await redis.get(`mj_talker_msg_count_${talkerId}`);
+    console.log('talkerMsgCount--------',talkerMsgCount)
+    if (!talkerMsgCount || talkerMsgCount == '0') {
+      await redis.set(`mj_talker_msg_count_${talkerId}`, 1, 'EX', 200);
+    } else {
+      message.say(`@${talker.name()} \n❌ 亲，你提交任务的速度太快了哦，请先休息一会吧`);
+      return;
+    }
+
     let errorMsg;
     if (rawText.startsWith('/up ')) {
       const content = rawText.substring(4);
       errorMsg = await submitTask({
-        state: topic + ':' + talkerName,
+        state: `${topic}:${talkerId}:${talkerName}`,
         action: "UV",
         content: content
       });
     } else if (rawText.startsWith('/mj ')) {
       const prompt = rawText.substring(4);
       errorMsg = await submitTask({
-        state: topic + ':' + talkerName,
+        state: `${topic}:${talkerId}:${talkerName}`,
         action: "IMAGINE",
         prompt: prompt
       });
@@ -82,6 +104,7 @@ export class Bot {
       const content = `@${talkerName} \n❌ ${errorMsg}`;
       await room.say(content);
       console.log(`${formatDateStandard(date)} - [${topic}] ${this.botName}: ${content}`);
+      await redis.set(`mj_talker_msg_count_${talkerId}`, 0);
     }
   }
 
@@ -123,6 +146,7 @@ export class Bot {
       await message.say(result);
       return;
     }
+
     const talkerName = talker.name();
     console.log(`${formatDateStandard(date)} - [私聊] ${talkerName}: ${rawText}`);
     if (!rawText.startsWith('/mj ') && !rawText.startsWith('/up ')) {
@@ -134,18 +158,31 @@ export class Bot {
       console.log(`${formatDateStandard(date)} - [私聊] ${this.botName}: ${content}`);
       return;
     }
+
+    // redis获取锁定状态
+    const talkerId = talker.id;
+    console.log('talkerId--------',talkerId)
+    const talkerMsgCount = await redis.get(`mj_talker_msg_count_${talkerId}`);
+    console.log('talkerMsgCount--------',talkerMsgCount)
+    if (!talkerMsgCount || talkerMsgCount == '0') {
+      await redis.set(`mj_talker_msg_count_${talkerId}`, 1, 'EX', 160);
+    } else {
+      message.say(`@${talker.name()} \n❌ 亲，你提交任务的速度太快了哦，请先休息一会吧`);
+      return;
+    }
+
     let errorMsg;
     if (rawText.startsWith('/up ')) {
       const content = rawText.substring(4);
       errorMsg = await submitTask({
-        state: '私聊:' + talkerName,
+        state: `私聊:${talkerId}:${talkerName}`,
         action: "UV",
         content: content
       });
     } else if (rawText.startsWith('/mj ')) {
       const prompt = rawText.substring(4);
       errorMsg = await submitTask({
-        state: '私聊:' + talkerName,
+        state: `私聊:${talkerId}:${talkerName}`,
         action: "IMAGINE",
         prompt: prompt
       });
@@ -154,6 +191,7 @@ export class Bot {
       const content = `@${talkerName} \n❌ ${errorMsg}`;
       await message.say(content);
       console.log(`${formatDateStandard(date)} - [私聊] ${this.botName}: ${content}`);
+      await redis.set(`mj_talker_msg_count_${talkerId}`, 0);
     }
   }
 }
