@@ -83,7 +83,7 @@ app.post("/notify", async (req: Request, res: Response): Promise<Response> => {
     } else {
       room = await client.Room.find({ topic: roomName });
     }
-    console.log(room)
+    console.log('回调内容--------', req.body)
     // 找不到人或房间
     if (!room) {
       return res.status(404).send("room not found");
@@ -92,8 +92,15 @@ app.post("/notify", async (req: Request, res: Response): Promise<Response> => {
     const action = req.body.action;
     const status = req.body.status;
     const description = req.body.prompt;
-    if (status == 'IN_PROGRESS' || status == 'SUBMITTED') {
-      room.say(`@${userName} \n✅ 您的任务已提交\n✨ Prompt: ${description}\n🚀 正在快速处理中，请稍后`);
+    if (status == 'SUBMITTED') {
+      if (action == 'IMAGINE') {
+        room.say(`@${userName} \n✅ 绘图任务已提交\n✨ Prompt: ${description}\n🚀 正在快速处理中，请稍后`);
+      } else if (action == 'VARIATION') {
+        room.say(`@${userName} \n✅ 变换任务已提交\n✨ Prompt: ${description}\n🚀 正在快速处理中，请稍后`);
+      } else if (action == 'UPSCALE') {
+        room.say(`@${userName} \n🔍 变换任务已提交\n✨ Prompt: ${description}\n🚀 正在快速处理中，请稍后`);
+      }
+      
     } else if (status == 'FAILURE') {
       room.say(`@${userName} \n❌ 任务执行失败\n✨ ${description}`);
       await redis.set(`mj_talker_msg_count_${talkerId}`, 0);

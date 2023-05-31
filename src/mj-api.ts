@@ -10,9 +10,13 @@ import { Request } from "./request.js";
 const request = new Request({})
 
 export async function submitTask(params: any): Promise<string> {
-    let url = "/trigger/submit";
+    // let url = "/trigger/submit";
+    // if (params.action == 'UV') {
+    //     url = "/trigger/submit-uv";
+    // }
+    let url = '/submit/imagine';
     if (params.action == 'UV') {
-        url = "/trigger/submit-uv";
+        url = '/submit/simple-change'
     }
     try {
         const response = await request.post(url, params);
