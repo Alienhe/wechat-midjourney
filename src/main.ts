@@ -102,7 +102,7 @@ app.post("/notify", async (req: Request, res: Response): Promise<Response> => {
       }
       
     } else if (status == 'FAILURE') {
-      room.say(`@${userName} \n❌ 任务执行失败\n✨ ${description}`);
+      room.say(`@${userName} \n❌ 任务执行失败\n✨ ${req.body.failReason}`);
       await redis.set(`mj_talker_msg_count_${talkerId}`, 0);
     } else if (status == 'SUCCESS') {
       const time = req.body.finishTime - req.body.submitTime;
